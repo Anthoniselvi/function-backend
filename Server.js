@@ -17,46 +17,97 @@ app.use(express.urlencoded({ extended: true }));
 app.post("/profile", (request, response) => {
   const newProfile = request.body;
 
-  console.log(newProfile);
+  console.log("Profile creation: " + JSON.stringify(newProfile));
 
   let db = new sqlite3.Database("db/events");
 
-  const insertQuery =
-    "INSERT INTO profile (id, name, age, gender, address, city, mobile, email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+  const insertQuery = "INSERT INTO profile (id, name, email) VALUES (?, ?, ?)";
 
-  const values = [
-    newProfile.id,
-    newProfile.name,
-    newProfile.age,
-    newProfile.gender,
-    newProfile.address,
-    newProfile.city,
-    newProfile.mobile,
-    newProfile.email,
-  ];
-
+  const values = [newProfile.id, newProfile.name, newProfile.email];
+  console.log("newProfile.id :" + newProfile.id);
   db.run(insertQuery, values, (err) => {
+    console.log("values: " + values);
+    console.log("error: " + err);
     if (err) {
       response.json({
         message: err.message,
       });
+      db.close();
     } else {
       response.json({
         message: "Successfully inserted Profile ",
       });
+      db.close();
     }
   });
-
-  db.close();
 });
 
-app.get("/profile", (request, response) => {
+// app.post("/profile", (request, response) => {
+//   const newProfile = request.body;
+
+//   console.log("Profile creation: " + JSON.stringify(newProfile));
+
+//   let db = new sqlite3.Database("db/events");
+
+//   const insertQuery =
+//     "INSERT INTO profile (id, name, age, gender, address, city, mobile, email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
+//   let updatedAge = "";
+//   let updatedAddress = "";
+//   let updatedCity = "";
+//   let updatedGender = "";
+//   let updatedMobile = "";
+//   console.log("newProfile.age : " + newProfile.age);
+//   if (newProfile.age) {
+//     console.log("newProfile.age in if condition: " + newProfile.age);
+//     updatedAge = newProfile.age;
+//   }
+//   if (newProfile.gender) {
+//     updatedGender = newProfile.gender;
+//   }
+//   if (newProfile.address) {
+//     updatedAddress = newProfile.address;
+//   }
+//   if (newProfile.city) {
+//     updatedCity = newProfile.city;
+//   }
+//   if (newProfile.mobile) {
+//     updatedMobile = newProfile.mobile;
+//   }
+
+//   const values = [
+//     newProfile.id,
+//     newProfile.name,
+//     updatedAge,
+//     updatedGender,
+//     updatedAddress,
+//     updatedCity,
+//     updatedMobile,
+//     newProfile.email,
+//   ];
+
+//   db.run(insertQuery, values, (err) => {
+//     if (err) {
+//       response.json({
+//         message: err.message,
+//       });
+//     } else {
+//       response.json({
+//         message: "Successfully inserted Profile ",
+//       });
+//     }
+//   });
+
+//   db.close();
+// });
+
+app.get("/profile/:id", (request, response) => {
   let db = new sqlite3.Database("db/events");
 
   const selectQuery =
-    "SELECT id, name, age, gender, address, city, mobile, email from profile";
+    "SELECT id, name, age, gender, address, city, mobile, email from profile WHERE id=?";
 
-  db.all(selectQuery, [], (err, profileList) => {
+  db.all(selectQuery, [request.params.id], (err, profileList) => {
     if (err) {
       response.json({
         message: err.message,
@@ -81,10 +132,53 @@ app.get("/profile", (request, response) => {
   db.close();
 });
 
+app.put("/profile", (request, response) => {
+  const updatedProfile = request.body;
+
+  let db = new sqlite3.Database("db/events");
+
+  const updatedName = updatedProfile.name;
+  const updatedAge = updatedProfile.age;
+  const updatedGender = updatedProfile.gender;
+  const updatedAddress = updatedProfile.address;
+  const updatedCity = updatedProfile.city;
+  const updatedMobile = updatedProfile.mobile;
+  const updatedEmail = updatedProfile.email;
+  const id = updatedProfile.id;
+
+  const updateQuery =
+    "UPDATE profile SET name=?, age=?, gender=?, address=?, city=?, mobile=?, email=? WHERE id = ?";
+
+  const values = [
+    updatedName,
+    updatedAge,
+    updatedGender,
+    updatedAddress,
+    updatedCity,
+    updatedMobile,
+    updatedEmail,
+    id,
+  ];
+
+  db.run(updateQuery, values, (err) => {
+    if (err) {
+      response.json({
+        message: err.message,
+      });
+    } else {
+      response.json({
+        message: "Successfully updated Profile ",
+      });
+    }
+  });
+
+  db.close();
+});
+
 app.post("/events", (request, response) => {
   const newEvent = request.body;
 
-  console.log(newEvent);
+  console.log("Event Creation : " + newEvent);
 
   let db = new sqlite3.Database("db/events");
 
@@ -143,46 +237,112 @@ app.get("/events", (request, response) => {
   db.close();
 });
 
+app.get("/events/:id", (request, response) => {
+  let db = new sqlite3.Database("db/events");
+
+  const selectQuery =
+    "SELECT id, eventType, name, place, date, profileId from events WHERE id=? ";
+
+  db.all(selectQuery, [parseInt(request.params.id)], (err, eventslist) => {
+    console.log(parseInt(request.params.id));
+    if (err) {
+      response.json({
+        message: err.message,
+      });
+    } else {
+      const eventInputs = eventslist.map((singleevent) => {
+        console.log(singleevent);
+        return {
+          id: singleevent.id,
+          eventType: singleevent.eventType,
+          name: singleevent.name,
+          place: singleevent.place,
+          date: singleevent.date,
+          profileId: singleevent.profileId,
+        };
+      });
+      console.log(eventInputs);
+      response.json(eventInputs[0]);
+    }
+  });
+  db.close();
+});
+
 app.get("/events/all/:profileId", (request, response) => {
   let db = new sqlite3.Database("db/events");
 
   const selectQuery =
     "SELECT id, eventType, name, place, date, profileId from events WHERE profileId = ?";
 
-  db.all(
-    selectQuery,
-    [parseInt(request.params.profileId)],
-    (err, eventslist) => {
-      if (err) {
-        response.json({
-          message: err.message,
-        });
-      } else {
-        const eventInputs = eventslist.map((singleevent) => {
-          console.log(singleevent);
-          return {
-            id: singleevent.id,
-            eventType: singleevent.eventType,
-            name: singleevent.name,
-            place: singleevent.place,
-            date: singleevent.date,
-            profileId: singleevent.profileId,
-          };
-        });
-        response.json(eventInputs);
-        console.log(eventInputs);
-      }
+  db.all(selectQuery, [request.params.profileId], (err, eventslist) => {
+    if (err) {
+      response.json({
+        message: err.message,
+      });
+    } else {
+      const eventInputs = eventslist.map((singleevent) => {
+        console.log(singleevent);
+        return {
+          id: singleevent.id,
+          eventType: singleevent.eventType,
+          name: singleevent.name,
+          place: singleevent.place,
+          date: singleevent.date,
+          profileId: singleevent.profileId,
+        };
+      });
+      response.json(eventInputs);
+      console.log(eventInputs);
     }
-  );
+  });
 
   db.close();
 });
 
+app.get("/events/profileId", (request, response) => {
+  let db = new sqlite3.Database("db/events");
+
+  const selectQuery = "SELECT profileId from events WHERE id = ?";
+
+  db.all(selectQuery, [request.query.eventId], (err, results) => {
+    if (err) {
+      response.json({
+        message: err.message,
+      });
+    } else {
+      console.log(results);
+
+      response.json(results[0]);
+    }
+  });
+
+  db.close();
+});
+
+app.get("/entries/eventId", (request, response) => {
+  let db = new sqlite3.Database("db/events");
+
+  const selectQuery = "SELECT eventId from entries WHERE id = ?";
+
+  db.all(selectQuery, [request.query.entryId], (err, results) => {
+    if (err) {
+      response.json({
+        message: err.message,
+      });
+    } else {
+      console.log(results[0]);
+
+      response.json(results[0]);
+    }
+  });
+
+  db.close();
+});
 app.put("/events", (request, response) => {
   const updatedEvents = request.body;
 
   let db = new sqlite3.Database("db/events");
-
+  const updatedEventType = updatedEventType.eventType;
   const updatedName = updatedEvents.name;
   const updatedPlace = updatedEvents.place;
   const updatedDate = updatedEvents.date;
@@ -190,7 +350,7 @@ app.put("/events", (request, response) => {
 
   const updateQuery = "UPDATE events SET name=?, place=?, date=? WHERE id = ?";
 
-  const values = [updatedName, updatedPlace, updatedDate, id];
+  const values = [updatedEventType, updatedName, updatedPlace, updatedDate, id];
 
   db.run(updateQuery, values, (err) => {
     if (err) {
@@ -200,6 +360,26 @@ app.put("/events", (request, response) => {
     } else {
       response.json({
         message: "Successfully updated Events ",
+      });
+    }
+  });
+
+  db.close();
+});
+
+app.delete("/entries/all/:eventId", (request, response) => {
+  let db = new sqlite3.Database("db/events");
+
+  const deleteQuery = "DELETE from entries WHERE eventId = ?";
+
+  db.run(deleteQuery, [request.params.eventId], (err) => {
+    if (err) {
+      response.json({
+        message: err.message,
+      });
+    } else {
+      response.json({
+        message: "Successfully deleted Event ",
       });
     }
   });
