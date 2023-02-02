@@ -101,13 +101,13 @@ app.post("/profile", (request, response) => {
 //   db.close();
 // });
 
-app.get("/profile/:id", (request, response) => {
+app.get("/profile", (request, response) => {
   let db = new sqlite3.Database("db/events");
 
   const selectQuery =
-    "SELECT id, name, age, gender, address, city, mobile, email from profile WHERE id=?";
+    "SELECT id, name, age, gender, address, city, mobile, email from profile";
 
-  db.all(selectQuery, [request.params.id], (err, profileList) => {
+  db.all(selectQuery, [], (err, profileList) => {
     if (err) {
       response.json({
         message: err.message,
@@ -127,6 +127,39 @@ app.get("/profile/:id", (request, response) => {
         };
       });
       response.json(profileInputs);
+    }
+  });
+  db.close();
+});
+
+app.get("/profile/:id", (request, response) => {
+  let db = new sqlite3.Database("db/events");
+
+  const selectQuery =
+    "SELECT id, name, age, gender, address, city, mobile, email from profile WHERE id=?";
+
+  db.all(selectQuery, [parseInt(request.params.id)], (err, profileList) => {
+    console.log("profile - ID:" + parseInt(request.params.id));
+    if (err) {
+      response.json({
+        message: err.message,
+      });
+    } else {
+      const profileInputs = profileList.map((singleProfile) => {
+        console.log("singleProfile :" + singleProfile);
+        return {
+          id: singleProfile.id,
+          name: singleProfile.name,
+          age: singleProfile.age,
+          gender: singleProfile.gender,
+          address: singleProfile.address,
+          city: singleProfile.city,
+          mobile: singleProfile.mobile,
+          email: singleProfile.email,
+        };
+      });
+      console.log("profileInputs[0]: " + profileInputs[0]);
+      response.json(profileInputs[0]);
     }
   });
   db.close();
@@ -244,7 +277,6 @@ app.get("/events/:id", (request, response) => {
     "SELECT id, eventType, name, place, date, profileId from events WHERE id=? ";
 
   db.all(selectQuery, [parseInt(request.params.id)], (err, eventslist) => {
-    console.log(parseInt(request.params.id));
     if (err) {
       response.json({
         message: err.message,
